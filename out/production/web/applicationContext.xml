@@ -1,0 +1,230 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ 	   xmlns="http://www.springframework.org/schema/beans" 
+ 	   xmlns:context="http://www.springframework.org/schema/context" 
+ 	   xmlns:aop="http://www.springframework.org/schema/aop" 
+ 	   xmlns:tx="http://www.springframework.org/schema/tx" 
+ 	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd 
+ 	   					   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd 
+ 	   					   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd 
+ 	   					   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd ">
+
+<!-- 开启注解配置 -->
+<context:component-scan base-package="dao"></context:component-scan>	
+<context:component-scan base-package="service"></context:component-scan>	
+<context:component-scan base-package="web"></context:component-scan>	
+
+<!-- 配置c3p0连接池 -->
+<context:property-placeholder location="classpath:db.properties"/>
+<bean name="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+	<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+	<property name="driverClass" value="${jdbc.driverClass}"></property>
+	<property name="user" value="${jdbc.user}"></property>
+	<property name="password" value="${jdbc.password}"></property>
+</bean>
+
+<!-- 将SessionFactory配置到Spring容器中 -->
+<bean name="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+<!-- 加载配置方案1 使用Hibernate.cfg.xml配置信息 -->
+	<!-- <property name="configLocation" value="classpath:hibernate.cfg.xml"></property> -->
+<!-- 加载配置方案2 在spring配置中放置hibernate配置信息-->
+	<!-- 将连接池注入到sessionFactory,hibernate会通过连接池获得连接 -->
+	<property name="dataSource" ref="dataSource"></property>
+	<property name="hibernateProperties">
+		<props>
+			<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+			<!-- <prop key="hibernate.show_sql">true</prop>
+			<prop key="hibernate.format_sql">true</prop> -->
+			<prop key="hibernate.hbm2ddl.auto">update</prop>
+		</props>
+	</property>
+	<!-- 指定orm元数据所在的包的路径  路径以/链接 ps:若第一次或者没有请注释-->
+	<property name="mappingDirectoryLocations" value="classpath:domain"></property>
+</bean>
+
+<!-- 核心事务管理器 -->
+	<bean name="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+	<tx:advice id="txAdvice" transaction-manager="transactionManager" >
+		<tx:attributes>
+			<tx:method name="save*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="persist*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="update*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="modify*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="delete*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="remove*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="get*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="true" />
+			<tx:method name="find*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="true" />
+			<tx:method name="select*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+	<!-- 配置将通知织入目标对象-->
+	<aop:config>
+		<aop:pointcut expression="execution(* service.Impl.*ServiceImpl.*(..))" id="txPc"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPc" />
+	</aop:config> 
+
+
+
+
+
+
+
+
+
+<!-- web scope="prototype"  -->
+<bean name="userAction" class="web.Action.UserAction" scope="prototype"></bean><!-- 用户 -->
+<bean name="messageAction" class="web.Action.MessageAction" scope="prototype"></bean>
+<bean name="homeAction" class="web.Action.HomeAction" scope="prototype"></bean>
+<bean name="dynamicAction" class="web.Action.DynamicAction" scope="prototype"></bean>
+
+<!-- service -->
+<bean name="userService" class="service.Impl.UserServiceImpl"></bean><!-- 用户 -->
+<bean name="messageService" class="service.Impl.MessageServiceImpl"></bean>
+<bean name="homeService" class="service.Impl.HomeServiceImpl"></bean>
+<bean name="dynamicService" class="service.Impl.DynamicServiceImpl"></bean>
+
+<!-- dao <property name="sessionFactory" ref="sessionFactory"></property> -->
+<bean name="userDao" class="dao.Impl.UserDaoImpl"><!-- 用户 -->
+	 <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+<bean name="messageDao" class="dao.Impl.MessageDaoImpl">
+	 <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+<bean name="homeDao" class="dao.Impl.HomeDaoImpl">
+	 <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+<bean name="dynamicDao" class="dao.Impl.DynamicDaoImpl">
+	 <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 事务核心管理器,封装了所有事务操作. 依赖于连接池 
+//不变
+<bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+	<property name="dataSource" ref="dataSource" ></property>
+</bean>
+//配置事务通知 
+//id任意
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+	<tx:attributes>
+		//name为方法名字
+		<tx:method name="transfer" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false"/>
+	</tx:attributes>
+</tx:advice>
+// 配置织入 
+<aop:config>
+	//方法位置     expression路径    id任意
+	<aop:pointcut expression="execution(* Day03_AccountDao.*ServiceImpl.*(..))" id="txpc"/>
+	//tx:advice的id                                      aop:pointcut的id
+	<aop:advisor advice-ref="txAdvice" pointcut-ref="txpc"/>
+</aop:config>
+
+
+
+//注解方式
+<bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+	<property name="dataSource" ref="dataSource" ></property>
+</bean>
+<tx:annotation-driven/>
+
+
+//代码
+<bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+	<property name="dataSource" ref="dataSource" ></property>
+</bean>
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+	<tx:attributes>
+		<tx:method name="transfer" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false"/>
+	</tx:attributes>
+</tx:advice>
+<aop:config>
+	<aop:pointcut expression="execution(* Day03_AccountDao.*ServiceImpl.*(..))" id="txpc"/>
+	<aop:advisor advice-ref="txAdvice" pointcut-ref="txpc"/>
+</aop:config>
+-->
+
+
+
+
+<!-- jdbc配置 
+// 指定Spring读取db.properties 
+<context:property-placeholder location="classpath:db.properties"/>
+//将连接池放入spring容器 
+<bean name="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+	<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+	<property name="driverClass" value="${jdbc.driverClass}"></property>
+	<property name="user" value="${jdbc.user}"></property>
+	<property name="password" value="${jdbc.password}"></property>
+</bean>
+// 将JDBCTemplate放入spring容器    若继承JdbcDaoSupport不需要
+<bean name="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+	<property name="dataSource" ref="dataSource"></property>
+</bean>	
+//将UserDao放入Spring容器 
+<bean name="userDao" class="Day03.UserDaoImp">
+	<property name="jt" ref="jdbcTemplate"></property>
+</bean>
+
+
+
+<bean name="accountDao" class="Day03_AccountDao.AccountDaoImpl">
+	<property name="dataSource" ref="dataSource"></property>
+</bean>
+<bean name="accountService" class="Day03_AccountDao.AccountServiceImpl">
+	<property name="dao" ref="accountDao"></property>
+</bean>
+-->	
+	
+	
+	
+	<!-- 指定扫描这个包下所有的注解,也会扫描子包 
+		<context:component-scan base-package="Day02"></context:component-scan>	
+	-->
+	<!-- 配置aop 
+	// 配置目标对象
+	<bean name="userService" class="Day02.UserService"></bean>
+	//配置通知对象
+	<bean name="myAdvice" class="Day02.MyAdvice"></bean>
+	//配置将通知织入目标对象
+	<aop:config>
+		//配置切入点 
+			execution(void Day02.UserService.save())
+			execution(* Day02.*Service.*(..))
+		<aop:pointcut expression="execution(* Day02.*Service.*(..))" id="pc"/> 
+		<aop:aspect ref="myAdvice">
+			// 指定 before方法作为前置通知切入到pc/
+			<aop:before method="before" pointcut-ref="pc"/>
+			<aop:after-returning method="afterRunig" pointcut-ref="pc"/>
+			<aop:around method="around" pointcut-ref="pc"/>
+		</aop:aspect>
+	</aop:config>
+	
+	//注解方式
+	<aop:aspectj-autoproxy></aop:aspectj-autoproxy>
+	
+	//XML
+	<bean name="userService" class="Day02.UserService"></bean>
+	<bean name="myAdvice" class="Day02.MyAdvice"></bean>
+	<aop:config>
+		<aop:pointcut expression="execution(* Day02.*Service.*(..))" id="pc"/> 
+		<aop:aspect ref="myAdvice">
+			<aop:around method="around" pointcut-ref="pc"/>
+		</aop:aspect>
+	</aop:config>
+	--> 
+
+	 
+</beans>

@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+	"http://struts.apache.org/dtds/struts-2.3.dtd">
+<struts>
+	
+	<!-- i18n:国际化. 解决post提交乱码 -->
+	<constant name="struts.i18n.encoding" value="UTF-8"></constant>
+	
+	
+	<!-- 指定struts2是否以开发模式运行
+			1.热加载主配置.(不需要重启即可生效)
+			2.提供更多错误信息输出,方便开发时的调试
+	<constant name="struts.devMode" value="true"></constant>
+	 -->
+	
+	
+	<!-- 将action创建Spring容器 -->
+	<constant name="struts.objectFactory" value="spring"></constant>
+	
+	
+	<package name="my" namespace="/" extends="struts-default" >
+	<interceptors>
+		<!-- 注册拦截器 -->
+			<interceptor name="CheckLoginInterceptor" class="web.interceptor.CheckLoginInterceptor"></interceptor>
+			<interceptor name="ChineseInterceptor" class="web.interceptor.ChineseInterceptor"></interceptor>	
+		<!-- 配置拦截器栈 -->
+				<interceptor-stack name="myStack">
+					<interceptor-ref name="ChineseInterceptor"></interceptor-ref>
+					<interceptor-ref name="CheckLoginInterceptor">
+						<param name="excludeMethods">homeList,pageDynamic,add,code,login,checkUsername</param>
+					</interceptor-ref>
+					<interceptor-ref name="defaultStack"></interceptor-ref>
+					</interceptor-stack>
+				</interceptors>
+		<!-- 指定默认拦截器栈 -->
+		<default-interceptor-ref name="myStack"></default-interceptor-ref>
+	
+	<global-results>
+			<result name="gologin" type="redirect" >/login.jsp</result>
+	</global-results>
+	
+	
+	<global-exception-mappings>
+		<exception-mapping result="error" exception="java.lang.RuntimeException"></exception-mapping>
+	</global-exception-mappings>
+	
+				<action name="UserAction_*" class="userAction" method="{1}" >
+					<result name="add" >/code.jsp</result>
+					<result name="tologin" type="redirect">/login.jsp</result>
+					<result name="errorCode">/code.jsp</result>
+					<result name="success" type="redirectAction">
+						<param name="namespace">/</param>
+					 	<param name="actionName">HomeAction_homeList</param>		
+					</result>
+					<result name="error" >/login.jsp</result>
+					<result name="toUser" type="redirect">/user.jsp</result>
+					<result name="tousered" type="redirect">/user.jsp</result>
+				</action>
+				
+				<action name="Message_*" class="messageAction" method="{1}">
+					<result name="toMessageList" type="redirectAction">
+					 	<param name="namespace">/</param>
+					 	<param name="actionName">Message_messagelist</param>
+					</result>
+					<result name="MessageList">/message.jsp</result>
+					<result name="deleteMessageList" type="redirectAction">
+					 	<param name="namespace">/</param>
+					 	<param name="actionName">Message_messagelist</param>
+					</result>
+					<result name="getMessageToUpdate">/updateMessage.jsp</result>
+					<result name="updateMessageToList" type="redirectAction">
+					 	<param name="namespace">/</param>
+					 	<param name="actionName">Message_messagelist</param>
+					</result>
+				</action>
+				
+				<action name="HomeAction_*" class="homeAction" method="{1}" >
+				<result name="toindex" type="chain">
+					<param name="namespace">/</param>
+					<param name="actionName">HomeAction_pageDynamic</param>
+				</result>
+				<result name="topage">/index.jsp</result>
+				</action>
+				
+				
+				<action name="DynamicAction_*" class="dynamicAction" method="{1}" >
+				<result name="toDynamicList" type="redirectAction">
+					<param name="namespace">/</param>
+					 <param name="actionName">DynamicAction_toDynamic</param>
+				</result>
+				<result name="toDynamictable">/dynamic.jsp</result>
+				<result name="toshow">/showDynamic.jsp</result>
+				<result name="deletetolist" type="redirectAction">
+					<param name="namespace">/</param>
+					<param name="actionName">DynamicAction_toDynamic</param>
+				</result>
+				<result name="toupdate">/updateDynamic.jsp</result>
+				<result name="toupdatefordynamic" type="redirectAction">
+					<param name="namespace">/</param>
+					<param name="actionName">DynamicAction_toDynamic</param>
+				</result>
+				</action>
+	</package>	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	<!-- package:将Action配置封装.就是可以在Package中配置很多action.
+			name属性: 给包起个名字,起到标识作用.随便起.不能其他包名重复.
+			namespace属性:给action的访问路径中定义一个命名空间
+			extends属性: 继承一个 指定包
+			abstract属性:包是否为抽象的; 标识性属性.标识该包不能独立运行.专门被继承
+			<package name="hello" namespace="/hello" extends="struts-default" ></package>
+	  -->
+	  <!-- action元素:配置action类
+				name属性: 决定了Action访问资源名.
+				class属性: action的完整类名
+				method属性: 指定调用Action中的哪个方法来处理请求
+				<action name="HelloAction" class="cn.itheima.a_hello.HelloAction" method="hello" ></action>
+		 -->
+		
+			<!-- result元素:结果配置 
+					name属性: 标识结果处理的名称.与action方法的返回值对应.
+					type属性: 指定调用哪一个result类来处理结果,默认使用转发. 
+					标签体:填写页面的相对路径:
+					dispatcher:转发     redirect:重定向   
+					chain:转发到action  <param name="actionName"> <param name="namespace">
+					redirectAction:重定向到action <param name="actionName"> <param name="namespace">
+					<result name="success" type="dispatcher" >/hello.jsp</result>
+			-->
+		<!-- 
+		// 方案1:class属性依然配置action完整类名字(不推荐) 
+		// 方案2:class为spring中的bean的名字,需要手动注入 
+			<package name="crm" namespace="/" extends="struts-default" >
+				<action name="UserAction_*" class="userAction" method="{1}" >
+					<result name="success">/success.jsp</result>
+				</action>
+			</package>
+		 -->
+	  
+	  
+	  
+	  
+	  
+	  
+	  <!-- 
+		1.注册拦截器 
+		<interceptors >
+			 name:自定义名字 class:拦截器完整类名 
+			<interceptor name="MyInter3" class="Day04.MyInterceptor03"></interceptor>
+			 2.注册拦截器 栈
+			<interceptor-stack name="myStack">
+				 自定义拦截器引入 
+				<interceptor-ref name="MyInter3">
+					指定那些不拦截|指定那些拦截(不能同时有)
+					<param name="excludeMethods">Demo03</param>
+					<param name="cludeMethods">Demo03</param>
+				</interceptor-ref>
+				 引入默认的20个拦截器栈 
+				<interceptor-ref name="defaultStack"></interceptor-ref>
+			</interceptor-stack>
+		</interceptors>
+		 3.指定默认拦截器栈   若在这里配置，则所有action都要进过这个拦截器 
+		 若要指定个别action经过这个拦截器,则将这句代码放带该action对象的action标签的第一个 
+		<default-interceptor-ref name="myStack"></default-interceptor-ref>
+		 -->
+		 <!-- 
+			<interceptors >
+				<interceptor name="MyInter3" class="Day04.MyInterceptor03"></interceptor>	
+				<interceptor-stack name="myStack">
+					<interceptor-ref name="MyInter3">
+						<param name="excludeMethods">Demo03</param>
+					</interceptor-ref>
+					<interceptor-ref name="defaultStack"></interceptor-ref>
+				</interceptor-stack>
+			</interceptors>
+			<default-interceptor-ref name="myStack"></default-interceptor-ref>
+		 -->
+		
+		
+		
+		
+		
+		
+		<!-- 全局action 
+		<global-results>
+			<result name="toLogin" type="redirect">/login.jsp</result>
+		</global-results>
+		-->
+		
+		
+		
+		
+		
+		
+		 <!-- 错误信息 
+		 <global-exception-mappings>
+		 	<exception-mapping result="error" exception="java.lang.RuntimeException"></exception-mapping>
+		 </global-exception-mappings>
+			-->
+			
+			
+			
+		
+		<!-- 指定反问action时的后缀名 
+			http://localhost:8080/struts2_day01/hello/HelloAction.do
+		<constant name="struts.action.extension" value="do"></constant>
+		-->
+	
+	  
+
+
+
+	
+	<!-- 引入其他struts配置文件 
+	<include file="cn/itheima/b_dynamic/struts.xml"></include>
+	<include file="cn/itheima/c_default/struts.xml"></include>
+	-->
+</struts>
